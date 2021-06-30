@@ -56,11 +56,13 @@
     - name: UFW - allow ssh
       ufw:
         rule: allow
+        direction: in
         proto: tcp
         from_port: 22
     - name: UFW - allow http
       ufw:
         rule: allow
+        direction: in
         proto: tcp
         from_port: 80
     - name: UFW - deny other traffic
