@@ -58,13 +58,13 @@
         rule: allow
         direction: in
         proto: tcp
-        from_port: 22
+        to_port: 22
     - name: UFW - allow http
       ufw:
         rule: allow
         direction: in
         proto: tcp
-        from_port: 80
+        to_port: 80
     - name: UFW - deny other traffic
       ufw:
         state: enabled
