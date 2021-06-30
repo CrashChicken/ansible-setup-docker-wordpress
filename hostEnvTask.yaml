@@ -1,0 +1,103 @@
+---
+- name: Prepare VM for Wordpress hosting
+  vars_files:
+    - vars.yml
+  hosts: wordpress
+  become: yes
+  tasks:
+    # Update all packages
+    - name: Update package index
+      apt:
+        update_cache: yes
+    - name: Upgrade outdated packages
+      apt:
+        upgrade: dist
+
+    # Installing Docker, UFW, Python3 and pip
+    - name: Install required packages
+      apt:
+        pkg:
+          - ufw
+          - apt-transport-https
+          - ca-certificates
+          - python3
+          - python3-pip
+        state: latest
+    - name: Add docker gpg key
+      apt_key:
+        url: "https://download.docker.com/linux/debian/gpg"
+        state: present
+    - name: Add docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/debian buster stable"
+        state: present
+    - name: Update package index
+      apt:
+        update_cache: yes
+    - name: Install Docker
+      apt:
+        pkg:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: latest
+    - name: Install docker Python package
+      pip:
+        name:
+          - docker
+          - docker-compose
+    #- name: Install docker-compose
+    #  get_url:
+    #    url: "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64"
+    #    dest: /usr/local/bin/docker-compose
+    #    mode: 'u+x,g+x'
+
+    # Secure VM with a firewall
+    - name: UFW - allow ssh
+      ufw:
+        rule: allow
+        name: OpenSSH
+    - name: UFW - allow http
+      ufw:
+        rule: allow
+        name: WWW
+    - name: UFW - deny other traffic
+      ufw:
+        state: enabled
+        policy: deny
+        direction: incoming
+
+    - name: Run docker-compose
+      community.docker.docker_compose:
+        project_name: wordpress_hosting
+        definition:
+          version: '2'
+          services:
+            wordpress:
+                image: wordpress:5.7.2
+                restart: unless-stopped
+                environment:
+                    WORDPRESS_DB_HOST: db
+                    WORDPRESS_DB_NAME: wordpress_db
+                    WORDPRESS_DB_USER: wordpress_user
+                    WORDPRESS_DB_PASSWORD: "{{ mysql_user_password }}"
+                volumes:
+                    - wordpress:/var/www/html
+                depends_on:
+                    - db
+                ports:
+                    - 80:80
+
+            db:
+                image: mysql:8.0.25
+                restart: unless-stopped
+                environment:
+                    MYSQL_DATABASE: wordpress_db
+                    MYSQL_USER: wordpress_user
+                    MYSQL_PASSWORD: "{{ mysql_user_password }}"
+                    MYSQL_ROOT_PASSWORD: "{{ mysql_root_password }}"
+                volumes:
+                    - db:/var/lib/mysql
+          volumes:
+              wordpress:
+              db:
