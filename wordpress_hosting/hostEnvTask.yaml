@@ -9,6 +9,7 @@
     - name: Update package index
       apt:
         update_cache: yes
+        cache_valid_time: 3600
     - name: Upgrade outdated packages
       apt:
         upgrade: dist
@@ -20,22 +21,26 @@
           - ufw
           - apt-transport-https
           - ca-certificates
+          - gnupg
+          - curl
           - python3
           - python3-pip
+          #- lsb-release
         state: latest
     - name: Add docker gpg key
       apt_key:
         url: "https://download.docker.com/linux/ubuntu/gpg"
         state: present
+    #- name: Run lsb_release command
+    #  command: lsb_release -cs
+    #  register: lsb_release
     - name: Add docker repository
       apt_repository:
         repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
         state: present
-    - name: Update package index
-      apt:
-        update_cache: yes
     - name: Install Docker
       apt:
+        update_cache: yes
         pkg:
           - docker-ce
           - docker-ce-cli
@@ -71,6 +76,7 @@
         policy: deny
         direction: incoming
 
+    # Create containers
     - name: Run docker-compose
       community.docker.docker_compose:
         project_name: wordpress_hosting
